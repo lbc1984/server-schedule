@@ -1,0 +1,40 @@
+{
+  "devices": {
+    "esp001": {
+      "schedules": {
+        "sch001": {
+          "hour": 6,
+          "minute": 30,
+          "action": "on",
+          "days": [1,2,3,4,5],
+          "sentDate": null
+        },
+        "sch002": {
+          "hour": 18,
+          "minute": 15,
+          "action": "off",
+          "days": [1,2,3,4,5],
+          "sentDate": null
+        }
+      }
+    },
+    "esp002": {
+      "schedules": {
+        "sch001": {
+          "hour": 7,
+          "minute": 0,
+          "action": "on",
+          "days": [1,2,3,4,5],
+          "sentDate": null
+        },
+        "sch002": {
+          "hour": 19,
+          "minute": 0,
+          "action": "off",
+          "days": [1,2,3,4,5],
+          "sentDate": null
+        }
+      }
+    }
+  }
+}
