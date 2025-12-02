@@ -1,75 +1,85 @@
-// server.js
-const cron = require("node-cron");
-const mqtt = require("mqtt");
-const { initializeApp } = require("firebase/app");
-const { getDatabase, ref, onValue, update } = require("firebase/database");
+import "dotenv/config"
+import cron from "node-cron"
+import mqtt from "mqtt"
+import admin from "firebase-admin"
+import { createRequire } from "module"
 
-// Firebase setup
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+// 1. Setup Firebase Admin
+const require = createRequire(import.meta.url)
+const serviceAccount = require("./serviceAccountKey.json")
 
-// MQTT setup
-const mqttClient = mqtt.connect("mqtt://YOUR_MQTT_BROKER", {
-  username: "YOUR_USERNAME",
-  password: "YOUR_PASSWORD",
-});
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://mqtt-d8e66-default-rtdb.asia-southeast1.firebasedatabase.app"
+})
 
-mqttClient.on("connect", () => console.log("MQTT connected"));
+const db = admin.database()
 
-// Global cache for schedules
-let schedules = {};
+const mqttClient = mqtt.connect(process.env.MQTT_URL, {
+    username: process.env.MQTT_USER,
+    password: process.env.MQTT_PASS
+})
 
-// Listen for devices node to detect new devices
-const devicesRef = ref(db, "devices");
-onValue(devicesRef, (snapshot) => {
-  const deviceIds = Object.keys(snapshot.val() || {});
-  deviceIds.forEach((deviceId) => {
-    if (!schedules[deviceId]) {
-      schedules[deviceId] = [];
+mqttClient.on("connect", () => console.log("✅ MQTT connected"))
+mqttClient.on("error", err => console.error("❌ MQTT Error:", err))
 
-      const schedRef = ref(db, `devices/${deviceId}/schedules`);
-      onValue(schedRef, (snap) => {
-        const data = snap.val() || {};
-        schedules[deviceId] = Object.keys(data).map(id => ({ id, ...data[id] }));
-        console.log(`Schedules updated for ${deviceId}`, schedules[deviceId]);
-      });
+let schedules = {}
+const devicesRef = db.ref("devices")
 
-      console.log(`Started listening for schedules of ${deviceId}`);
+devicesRef.on(
+    "value",
+    snapshot => {
+        const deviceIds = Object.keys(snapshot.val() || {})
+        console.log("Devices found:", deviceIds)
+
+        deviceIds.forEach(deviceId => {
+            if (!schedules[deviceId]) {
+                schedules[deviceId] = []
+
+                const schedRef = db.ref(`devices/${deviceId}/schedules`)
+
+                schedRef.on("value", snap => {
+                    const data = snap.val() || {}
+                    schedules[deviceId] = Object.keys(data).map(id => ({ id, ...data[id] }))
+                    console.log(`Updated schedules for ${deviceId}:`, schedules[deviceId])
+                })
+
+                console.log(`Listening for ${deviceId}...`)
+            }
+        })
+    },
+    error => {
+        console.error("Firebase Read Error:", error)
     }
-  });
-});
+)
 
-// Cron job every 10 seconds
+// 4. Cron Job
 cron.schedule("*/10 * * * * *", async () => {
-  const now = new Date();
-  const today = now.toISOString().split("T")[0];
+    const now = new Date()
+    const today = now.toISOString().split("T")[0]
+    console.log("fsdfds")
 
-  for (const deviceId in schedules) {
-    schedules[deviceId].forEach(async (sch) => {
-      const days = sch.days || [0,1,2,3,4,5,6];
-      const sentDate = sch.sentDate || null;
+    for (const deviceId in schedules) {
+        schedules[deviceId].forEach(async sch => {
+            const days = sch.days || [0, 1, 2, 3, 4, 5, 6]
+            const sentDate = sch.sentDate || null
 
-      if (
-        now.getHours() === sch.hour &&
-        now.getMinutes() === sch.minute &&
-        (!sentDate || sentDate !== today) &&
-        days.includes(now.getDay())
-      ) {
-        mqttClient.publish(`/esp/${deviceId}/cmd`, JSON.stringify({ action: sch.action }));
-        console.log(`[${today} ${now.getHours()}:${now.getMinutes()}] Sent ${sch.action} to ${deviceId}`);
+            if (
+                now.getHours() === sch.hour &&
+                now.getMinutes() === sch.minute &&
+                (!sentDate || sentDate !== today) &&
+                days.includes(now.getDay())
+            ) {
+                mqttClient.publish(`/esp/${deviceId}/cmd`, JSON.stringify({ action: sch.action }))
+                console.log(`[${today} ${now.getHours()}:${now.getMinutes()}] Sent ${sch.action} to ${deviceId}`)
 
-        const sentRef = ref(db, `devices/${deviceId}/schedules/${sch.id}`);
-        await update(sentRef, { sentDate: today });
-      }
-    });
-  }
-});
+                try {
+                    const sentRef = db.ref(`devices/${deviceId}/schedules/${sch.id}`)
+                    await sentRef.update({ sentDate: today })
+                } catch (e) {
+                    console.error("Lỗi update firebase:", e)
+                }
+            }
+        })
+    }
+})
