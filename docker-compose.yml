@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  esp-server:
+    container_name: esp-server
+    build: .
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./serviceAccountKey.json:/app/serviceAccountKey.json
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    command: bun run dev

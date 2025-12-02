@@ -4,7 +4,7 @@ import db from "./firebase.js";
 import admin from "firebase-admin";
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -28,11 +28,29 @@ app.post("/api/register", async (req, res) => {
     // Tạo node schedules rỗng nếu chưa có
     const schedRef = db.ref(`devices/${mac}/schedules`);
     const snap = await schedRef.get();
+    const placeholderKey = schedRef.push().key;
+
     if (!snap.exists()) {
-       // await schedRef.set({}); // Tùy chọn
+       await schedRef.child(placeholderKey).set({
+           action: "off",
+           hour: -1,
+           minute: -1,
+           days: [0,1,2,3,4,5,6],
+           sentDate: ""
+       });
     }
 
-    res.json({ success: true, message: "Registered" });
+    res.json({ 
+      success: true, 
+      message: "Registered",
+      config: {
+        mqtt_host: process.env.MQTT_HOST,
+        mqtt_port: parseInt(process.env.MQTT_PORT),
+        mqtt_user: process.env.MQTT_USER,
+        mqtt_pass: process.env.MQTT_PASS
+      }
+    });
+
   } catch (error) {
     console.error("API Error:", error);
     res.status(500).json({ error: "Internal Server Error" });
