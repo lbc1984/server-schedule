@@ -55,11 +55,6 @@ export const startScheduler = () => {
     });
   });
 
-const now = new Date();
-const today = now.toISOString().split("T")[0];
-console.log("today", today);
-
-
   // --- 3. Cron Job: Execute Schedules (Every 10s) ---
   cron.schedule("*/10 * * * * *", async () => {
     const now = new Date();
