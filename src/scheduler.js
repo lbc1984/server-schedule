@@ -50,6 +50,7 @@ export const startScheduler = () => {
         schedRef.on("value", (snap) => {
           const data = snap.val() || {};
           schedules[deviceId] = Object.keys(data).map(id => ({ id, ...data[id] }));
+          console.log(deviceId, schedules[deviceId]);
         });
       }
     });
