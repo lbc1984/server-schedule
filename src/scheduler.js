@@ -50,11 +50,15 @@ export const startScheduler = () => {
         schedRef.on("value", (snap) => {
           const data = snap.val() || {};
           schedules[deviceId] = Object.keys(data).map(id => ({ id, ...data[id] }));
-          console.log(deviceId, schedules[deviceId]);
         });
       }
     });
   });
+
+const now = new Date();
+const today = now.toISOString().split("T")[0];
+console.log("today", today);
+
 
   // --- 3. Cron Job: Execute Schedules (Every 10s) ---
   cron.schedule("*/10 * * * * *", async () => {
