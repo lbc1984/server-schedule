@@ -36,7 +36,7 @@ app.post("/api/register", async (req, res) => {
         minute: -1,
         days: [0, 1, 2, 3, 4, 5, 6],
         duration: 0,
-        sentDate: null
+        sentDate: -1
       });
     }
 
