@@ -4,7 +4,7 @@ import db from "./firebase.js";
 import admin from "firebase-admin";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 app.use(cors());
 app.use(express.json());
@@ -25,23 +25,23 @@ app.post("/api/register", async (req, res) => {
       lastSeen: admin.database.ServerValue.TIMESTAMP
     });
 
-    // Tạo node schedules rỗng nếu chưa có
     const schedRef = db.ref(`devices/${mac}/schedules`);
     const snap = await schedRef.get();
-    const placeholderKey = schedRef.push().key;
 
     if (!snap.exists()) {
-       await schedRef.child(placeholderKey).set({
-           action: "off",
-           hour: -1,
-           minute: -1,
-           days: [0,1,2,3,4,5,6],
-           sentDate: ""
-       });
+      const placeholderKey = schedRef.push().key;
+      await schedRef.child(placeholderKey).set({
+        action: "off",
+        hour: -1,
+        minute: -1,
+        days: [0, 1, 2, 3, 4, 5, 6],
+        duration: 0,
+        sentDate: null
+      });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Registered",
       config: {
         mqtt_host: process.env.MQTT_HOST,
@@ -57,8 +57,12 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
+app.get("/api", async (req, res) => {
+  res.json({ message: "API is running" });
+});
+
 export const startServer = () => {
   app.listen(PORT, () => {
-    console.log(`🚀 API Server running at http://localhost:${PORT}`);
+    console.log(`🚀 API Server node running`);
   });
 };

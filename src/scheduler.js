@@ -8,7 +8,6 @@ let schedules = {};
 export const startScheduler = () => {
   console.log("⏳ Starting Scheduler & LWT Listener...");
 
-  // --- 1. LWT & Status Listener ---
   mqttClient.subscribe("device/+/status");
 
   mqttClient.on("message", async (topic, message) => {
@@ -62,6 +61,7 @@ export const startScheduler = () => {
     const today = now.toISOString().split("T")[0];
 
     for (const deviceId in schedules) {
+      
       schedules[deviceId].forEach(async (sch) => {
         const days = sch.days || [0,1,2,3,4,5,6];
         const sentDate = sch.sentDate || null;
@@ -72,11 +72,9 @@ export const startScheduler = () => {
           (!sentDate || sentDate !== today) &&
           days.includes(now.getDay())
         ) {
-          // Publish Command
-          mqttClient.publish(`/esp/${deviceId}/cmd`, JSON.stringify({ action: sch.action }));
+          mqttClient.publish(`/device/${deviceId}/cmd`, JSON.stringify({ action: sch.action }));
           console.log(`[Sent] ${sch.action} to ${deviceId}`);
 
-          // Mark as sent
           try {
               await db.ref(`devices/${deviceId}/schedules/${sch.id}`).update({ sentDate: today });
           } catch (e) {
@@ -84,25 +82,6 @@ export const startScheduler = () => {
           }
         }
       });
-    }
-  });
-
-  // --- 4. Cron Job: Cleanup Offline Devices (Every 5 mins) ---
-  cron.schedule("*/5 * * * *", async () => {
-    const now = Date.now();
-    const snapshot = await db.ref("devices").once("value");
-    const devices = snapshot.val() || {};
-
-    for (const mac in devices) {
-      const device = devices[mac];
-      // Timeout after 5 mins (300000ms)
-      if (device.status === "online" && device.lastSeen && (now - device.lastSeen > 300000)) {
-         console.log(`⚠️ Force Offline: ${mac}`);
-         await db.ref(`devices/${mac}`).update({
-           status: "offline",
-           disconnectedAt: new Date().toISOString()
-         });
-      }
     }
   });
 };
