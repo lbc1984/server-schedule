@@ -1,0 +1,15 @@
+FROM node:20-alpine AS build
+WORKDIR /app
+
+# Install Bun
+RUN apk add --no-cache bash curl \
+    && curl -fsSL https://bun.sh/install | bash \
+    && mv /root/.bun/bin/bun /usr/local/bin/
+
+COPY package.json ./
+RUN bun install
+
+COPY . .
+
+ENTRYPOINT ["sh", "-c", "bun run build && echo 'Build done'"]
+
