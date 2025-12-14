@@ -1,34 +1,32 @@
 version: '3.8'
 
 services:
-  server:
-    container_name: esp-server
-    build: .
-    restart: always
-    ports:
-      - "80:3000"
-    env_file:
-      - .env
-    volumes:
-      - ./serviceAccountKey.json:/app/serviceAccountKey.json
-      - ./src:/app/src
-      - ./package.json:/app/package.json
-      - ./app.js:/app/app.js
-    environment:
-      - TZ=Asia/Ho_Chi_Minh
-    command: bun run dev
-    depends_on:
-      - frontend
+  # server:
+  #   container_name: esp-server
+  #   build: .
+  #   restart: always
+  #   ports:
+  #     - "80:3000"
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - ./serviceAccountKey.json:/app/serviceAccountKey.json
+  #     - ./src:/app/src
+  #     - ./package.json:/app/package.json
+  #     - ./app.js:/app/app.js
+  #   environment:
+  #     - TZ=Asia/Ho_Chi_Minh
+  #   command: bun run dev
+  #   depends_on:
+  #     - frontend
 
   frontend:
     container_name: esp-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    # ports:
-    #   - "80:5173"
+
     volumes:
       - ./frontend/src/components:/app/src/components
       - ./frontend/src/App.vue:/app/src/App.vue
       - ./src/frontend:/app/dist
-    # restart: always

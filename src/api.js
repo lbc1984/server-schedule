@@ -4,12 +4,12 @@ import db from "./firebase.js";
 import admin from "firebase-admin";
 import path from "path";
 import { fileURLToPath } from "url";
+import mqttClient from "./mqtt.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-// Sửa nhẹ: dùng || thay vì | để tránh lỗi port = 0
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
@@ -71,17 +71,13 @@ app.post("/api/register", async (req, res) => {
 // ============================================================
 app.get("/api/devices", async (req, res) => {
   try {
-    // 1. Lấy toàn bộ node 'devices'
     const snapshot = await db.ref("devices").once("value");
     const data = snapshot.val() || {};
 
-    // 2. Chuyển đổi từ Object sang Array để Frontend dễ hiển thị
-    // Từ: { "MAC_A": { ... }, "MAC_B": { ... } }
-    // Sang: [ { mac: "MAC_A", ... }, { mac: "MAC_B", ... } ]
     const devicesList = Object.keys(data).map(key => {
       return {
-        mac: key,         // Gán Key làm địa chỉ MAC
-        ...data[key]      // Copy toàn bộ dữ liệu bên trong (ip, status, schedules...)
+        mac: key,
+        ...data[key]
       };
     });
 
@@ -99,7 +95,7 @@ app.get("/api/devices", async (req, res) => {
 app.post("/api/schedule/:mac", async (req, res) => {
   try {
     const { mac } = req.params;
-    const scheduleData = req.body; // Dữ liệu từ Modal Vue gửi lên (hour, minute, action, ...)
+    const scheduleData = req.body;
 
     if (!mac || !scheduleData) {
       return res.status(400).json({ error: "Thiếu thông tin" });
@@ -109,22 +105,16 @@ app.post("/api/schedule/:mac", async (req, res) => {
 
     const schedRef = db.ref(`devices/${mac}/schedules`);
 
-    // Bước 1: Thêm lịch hẹn mới vào Firebase (tự sinh Key ID)
     const newRef = schedRef.push();
 
-    // Lưu dữ liệu vào key mới đó
     await newRef.set({
       ...scheduleData,
-      // Đảm bảo các trường bắt buộc nếu thiếu
       sentDate: scheduleData.sentDate || null
     });
 
-    // Bước 2: Dọn dẹp Placeholder (Lịch rỗng tạo lúc register)
-    // Nếu thiết bị đã có lịch thật, ta xóa cái lịch "hour: -1" đi cho sạch
     const snapshot = await schedRef.once("value");
     snapshot.forEach((child) => {
       const val = child.val();
-      // Kiểm tra điều kiện placeholder (giống logic ở api register)
       if (val.hour === -1 && val.minute === -1 && val.action === "off") {
         console.log(`🧹 Removing placeholder: ${child.key}`);
         child.ref.remove();
@@ -159,16 +149,13 @@ app.put("/api/schedule/:mac/:id", async (req, res) => {
 
     const schedRef = db.ref(`devices/${mac}/schedules/${id}`);
 
-    // Kiểm tra xem lịch có tồn tại không
     const snap = await schedRef.get();
     if (!snap.exists()) {
       return res.status(404).json({ error: "Lịch hẹn không tìm thấy" });
     }
 
-    // Cập nhật dữ liệu
     await schedRef.update({
       ...scheduleData,
-      // Reset trạng thái đã gửi để server xử lý lại nếu cần
       sentDate: null
     });
 
@@ -181,10 +168,27 @@ app.put("/api/schedule/:mac/:id", async (req, res) => {
 });
 
 // ============================================================
+// 5. API MỚI: xủ lý ngay LỊCH HẸN
+// ============================================================
+app.post("/api/action", async (req, res) => {
+  try {
+    const { mac, action, duration } = req.body;
+
+    mqttClient.publish(`/device/${mac}/cmd`, JSON.stringify({ action: action, duration: duration }));
+    console.log(`[Sent] ${action} to ${mac}`);
+    return res.status(200).json({ success: true, message: "Action ngay đã được gửi" });
+  }
+  catch (error) {
+    console.error("Add Schedule Error:", error);
+    res.status(500).json({ error: "Lỗi Server khi action ngay" });
+  }
+});
+
+// ============================================================
 // 3. CÁC API KHÁC
 // ============================================================
 
-app.get("/api", async (req, res) => {
+app.get("/check", async (req, res) => {
   res.json({ message: "API is running" });
 });
 
