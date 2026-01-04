@@ -9,7 +9,7 @@ const routes = [
     path: '/schedule',
     name: 'Schedule',
     component: ScheduleList,
-    meta: { requiresAuth: true }
+    // meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -34,15 +34,17 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  const user = auth.currentUser
+  // const user = auth.currentUser
 
-  if (to.meta.requiresAuth && !user) {
-    return next({ name: 'Login' })
-  }
-  else if(to.name =="Logout"){
-    await auth.signOut()
-    return next({name: 'Login'})
-  }
+  // if (to.meta.requiresAuth && !user) {
+  //   return next({ name: 'Login' })
+  // }
+  // else if(to.name =="Logout"){
+  //   await auth.signOut()
+  //   return next({name: 'Login'})
+  // }
+
+  if(to.name === "Schedule") return next()
 
   if (to.name === "Schedule" && user) {
     const ref = doc(db_firestore, "allowed_users", "iot")

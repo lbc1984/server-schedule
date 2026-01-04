@@ -270,6 +270,33 @@ app.get("/check", async (req, res) => {
   res.json({ message: "API is running" });
 });
 
+app.post("/claim", verifyFirebaseToken, async (req, res) => {
+  const { mac, email } = req.body
+  const deviceRef = await processData(mac)
+  const snapshot = await deviceRef.get()
+
+  let result = "Ok"
+
+  if (snapshot.exists()) {
+    const deviceData = snapshot.val()
+    if (!deviceData.owner && deviceData.status == "online") {
+      await deviceRef.update({
+        owner: email
+      });
+
+      result = "Đã claim thiết bị"
+    }
+    else {
+      result = "Thiết bị không thể claim"
+    }
+  }
+  else {
+    result = "Device không tồn tại"
+  }
+
+  return res.json(result)
+})
+
 app.use(express.static(path.join(__dirname, "frontend")));
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "frontend", "index.html"));

@@ -1,13 +1,16 @@
 <template>
     <v-container>
-        <v-col cols="12" class="mb-4 d-flex justify-end">
+        <v-col cols="12" class="mb-4 ga-2 d-flex justify-end">
             <v-btn @click="fetchDevices" :loading="isLoading" color="primary" prepend-icon="mdi-refresh">
                 Làm mới
             </v-btn>
+            <v-btn @click="openAddDevice" :loading="isLoading" color="primary" prepend-icon="mdi-plus">
+                Thêm mới
+            </v-btn>
         </v-col>
         <v-col cols="12">
-            <v-text-field v-model="searchQuery" label="MAC Address..." prepend-inner-icon="mdi-magnify"
-                variant="outlined" clearable density="compact"></v-text-field>
+            <v-text-field v-model="searchQuery" label="Nhập tên..." prepend-inner-icon="mdi-magnify" variant="outlined"
+                clearable density="compact"></v-text-field>
         </v-col>
 
         <v-alert v-if="errorMessage" type="error" class="mb-4">{{ errorMessage }}</v-alert>
@@ -127,6 +130,8 @@
 
         <delete-modal v-model:isShow="showModalDelete" :dataSchedule="formState" :mac="targetMac"
             :scheduleId="scheduleId" @handleDelete="fetchDevices" />
+
+        <add-modal v-model:isShow="showModalAddDevice" @submit="actionAddDevice" />
     </v-container>
 </template>
 
@@ -135,6 +140,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
 import ScheduleModal from './schedule/ScheduleModal.vue';
 import DeleteModal from './schedule/DeleteModal.vue';
+import AddModal from './schedule/AddModal.vue';
 import { auth } from '../firebase'
 import router from "../router"
 
@@ -182,6 +188,7 @@ const searchQuery = ref('');
 // --- STATE CHO MODAL ---
 const showModal = ref(false);
 const showModalDelete = ref(false);
+const showModalAddDevice = ref(false);
 const isEditing = ref(false);
 const targetMac = ref('');
 const scheduleId = ref('');
@@ -254,10 +261,21 @@ const openDeleteModal = (mac, schedule) => {
     formState.days = Array.isArray(schedule.days) ? [...schedule.days] : [];
 }
 
+const openAddDevice = () => {
+    showModalAddDevice.value = true
+}
+
+const actionAddDevice = async (mac) => {
+    const user = auth.currentUser
+    const result = await API.post("/claim", { email: user.email, mac: mac })
+    console.log(result);
+    
+}
+
 const filteredDevices = computed(() => {
     if (!searchQuery.value) return allDevices.value;
     const query = searchQuery.value.toLowerCase();
-    return allDevices.value.filter(d => d.mac.toLowerCase().includes(query));
+    return allDevices.value.filter(d => d.name.toLowerCase().includes(query));
 });
 
 const getSchedulesArray = (device) => {
