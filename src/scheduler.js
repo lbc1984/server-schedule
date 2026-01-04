@@ -40,16 +40,26 @@ export const startScheduler = () => {
 	// --- 2. Schedule Data Sync ---
 	const devicesRef = db.ref("devices");
 	devicesRef.on("value", (snapshot) => {
-		const deviceIds = Object.keys(snapshot.val() || {});
+		const devices = snapshot.val() || {};
 
-		deviceIds.forEach((deviceId) => {
+		Object.keys(devices).forEach((deviceId) => {
+			const device = devices[deviceId];
+			
+			if (device.status === "offline") {
+				delete schedules[deviceId];
+				return;
+			}
+
 			if (!schedules[deviceId]) {
 				schedules[deviceId] = [];
 
 				const schedRef = db.ref(`devices/${deviceId}/schedules`);
 				schedRef.on("value", (snap) => {
 					const data = snap.val() || {};
-					schedules[deviceId] = Object.keys(data).map(id => ({ id, ...data[id] }));
+					schedules[deviceId] = Object.keys(data).map(id => ({
+						id,
+						...data[id],
+					}));
 				});
 			}
 		});
@@ -67,12 +77,12 @@ export const startScheduler = () => {
 				const sentDate = sch.sentDate || null;
 
 				if (
-					now.getHours() === sch.hour &&
-					now.getMinutes() === sch.minute &&
-					(!sentDate || sentDate !== today) &&
+					now.getHours() == sch.hour &&
+					now.getMinutes() == sch.minute &&
+					(!sentDate || sentDate != today) &&
 					days.includes(now.getDay())
 				) {
-					mqttClient.publish(`/device/${deviceId}/cmd`, JSON.stringify({ action: sch.action, duration: sch.duration }));
+					mqttClient.publish(`device/${deviceId}/cmd`, JSON.stringify({ action: sch.action, duration: sch.duration }));
 					console.log(`[Sent] ${sch.action} to ${deviceId}`);
 
 					try {

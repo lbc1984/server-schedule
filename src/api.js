@@ -15,9 +15,29 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// ============================================================
-// 1. API CŨ (GIỮ NGUYÊN KHÔNG SỬA)
-// ============================================================
+
+const processData = async (mac, schedule_id = null) => {
+  return (schedule_id == null) ? db.ref(`devices/${mac}`) : db.ref(`devices/${mac}/schedules/${schedule_id}`);
+}
+
+async function verifyFirebaseToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Missing token" });
+  }
+
+  const idToken = authHeader.split(" ")[1];
+
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+}
+
+
 app.post("/api/register", async (req, res) => {
   try {
     const { mac, ip } = req.body;
@@ -27,6 +47,14 @@ app.post("/api/register", async (req, res) => {
     console.log(`📡 New Device: ${mac} (IP: ${ip})`);
 
     const deviceRef = db.ref(`devices/${mac}`);
+    const snapshot = await deviceRef.get()
+
+    if (!snapshot.exists()) {
+      await deviceRef.update({
+        name: mac
+      });
+    }
+
     await deviceRef.update({
       connectedAt: new Date().toISOString(),
       status: "online",
@@ -69,9 +97,9 @@ app.post("/api/register", async (req, res) => {
 // ============================================================
 // 2. API MỚI: LẤY DANH SÁCH TOÀN BỘ DEVICES
 // ============================================================
-app.get("/api/devices", async (req, res) => {
+app.get("/api/devices", verifyFirebaseToken, async (req, res) => {
   try {
-    const snapshot = await db.ref("devices").once("value");
+    const snapshot = await db.ref("devices").get()
     const data = snapshot.val() || {};
 
     const devicesList = Object.keys(data).map(key => {
@@ -92,7 +120,7 @@ app.get("/api/devices", async (req, res) => {
 // ============================================================
 // 3. API MỚI: THÊM LỊCH HẸN (SCHEDULE)
 // ============================================================
-app.post("/api/schedule/:mac", async (req, res) => {
+app.post("/api/schedule/:mac", verifyFirebaseToken, async (req, res) => {
   try {
     const { mac } = req.params;
     const scheduleData = req.body;
@@ -134,9 +162,43 @@ app.post("/api/schedule/:mac", async (req, res) => {
 });
 
 // ============================================================
+// 3. API MỚI: XÓA LỊCH HẸN (SCHEDULE)
+// ============================================================
+app.delete("/api/schedule/:mac/:scheduleId", verifyFirebaseToken, async (req, res) => {
+  try {
+    const { mac, scheduleId } = req.params;
+
+    if (!mac || !scheduleId) {
+      return res.status(400).json({ error: "Thiếu thông tin" });
+    }
+
+    const schedRef = db.ref(`devices/${mac}/schedules/${scheduleId}`);
+
+    const snapshot = await schedRef.once("value");
+    if (!snapshot.exists()) {
+      return res.status(404).json({ error: "Schedule không tồn tại" });
+    }
+
+    await schedRef.remove();
+
+    console.log(`🗑️ Removed schedule ${scheduleId} for ${mac}`);
+
+    res.json({
+      success: true,
+      message: "Xóa lịch thành công",
+      id: scheduleId
+    });
+
+  } catch (error) {
+    console.error("Delete Schedule Error:", error);
+    res.status(500).json({ error: "Lỗi Server khi xóa lịch" });
+  }
+});
+
+// ============================================================
 // 4. API MỚI: SỬA LỊCH HẸN (UPDATE)
 // ============================================================
-app.put("/api/schedule/:mac/:id", async (req, res) => {
+app.put("/api/schedule/:mac/:id", verifyFirebaseToken, async (req, res) => {
   try {
     const { mac, id } = req.params;
     const scheduleData = req.body;
@@ -167,14 +229,30 @@ app.put("/api/schedule/:mac/:id", async (req, res) => {
   }
 });
 
+app.put("/api/name/:mac", verifyFirebaseToken, async (req, res) => {
+  const { name } = req.body
+  const { mac } = req.params
+
+  const deviceRef = await processData(mac)
+  const snapshot = await deviceRef.get()
+
+  if (snapshot.exists()) {
+    deviceRef.update({
+      name: name
+    })
+  }
+
+  res.json({})
+})
+
 // ============================================================
 // 5. API MỚI: xủ lý ngay LỊCH HẸN
 // ============================================================
-app.post("/api/action", async (req, res) => {
+app.post("/api/action", verifyFirebaseToken, async (req, res) => {
   try {
     const { mac, action, duration } = req.body;
 
-    mqttClient.publish(`/device/${mac}/cmd`, JSON.stringify({ action: action, duration: duration }));
+    mqttClient.publish(`device/${mac}/cmd`, JSON.stringify({ action: action, duration: Number(duration) }), { qos: 0, retain: false });
     console.log(`[Sent] ${action} to ${mac}`);
     return res.status(200).json({ success: true, message: "Action ngay đã được gửi" });
   }
@@ -196,6 +274,12 @@ app.use(express.static(path.join(__dirname, "frontend")));
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "frontend", "index.html"));
 });
+
+// export const startServer = () => {
+//   app.listen(PORT, "0.0.0.0", () => {
+//     console.log(`🚀 API Server node running on port ${PORT}`);
+//   });
+// };
 
 export const startServer = () => {
   app.listen(PORT, () => {

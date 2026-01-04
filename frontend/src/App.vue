@@ -5,7 +5,7 @@
       v-if="$route.name !== 'Login'"
       class="main-header"
     >
-      <h1>Scheduler Admin</h1>
+      <h1>Scheduler</h1>
       <nav>
         <router-link
           to="/schedule"
@@ -16,10 +16,10 @@
         </router-link>
 
         <router-link
-          to="/login"
+          to="/logout"
           class="nav-btn"
         >
-          🔑 Login
+          🔑 Logout
         </router-link>
       </nav>
     </header>
@@ -98,15 +98,13 @@ nav {
   background-color: #3f5469;
 }
 
-/* === CONTENT === */
 .content-view {
   flex: 1;
-  overflow: auto; /* scroll CHỈ ở page content */
-  padding: 20px;
+  overflow: auto;
+  /* padding: 20px; */
   background: #f5f6f8;
 }
 
-/* LOGIN KHÔNG ĐƯỢC CÓ PADDING */
 .content-view.no-padding {
   padding: 0 !important;
   overflow: hidden;

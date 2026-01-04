@@ -24,7 +24,7 @@ services:
     container_name: esp-frontend
     build:
       context: ./frontend
-      dockerfile: Dockerfile-dev
+      dockerfile: dockerfile-dev
     ports:
       - "80:5173"
     volumes:
