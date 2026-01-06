@@ -99,7 +99,8 @@ app.post("/api/register", async (req, res) => {
 // ============================================================
 app.get("/api/devices", verifyFirebaseToken, async (req, res) => {
   try {
-    const snapshot = await db.ref("devices").get()
+    const owner = req.user.email
+    const snapshot = await db.ref("devices").orderByChild("owner").equalTo(owner).get()
     const data = snapshot.val() || {};
 
     const devicesList = Object.keys(data).map(key => {

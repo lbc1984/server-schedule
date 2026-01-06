@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Login from '../components/Login.vue'
 import ScheduleList from '../components/ScheduleList.vue'
-import { auth, db_firestore } from '../firebase'
+import { auth, db_firestore, authReady } from '../firebase'
 import { doc, getDoc } from "firebase/firestore";
 
 const routes = [
@@ -9,7 +9,7 @@ const routes = [
     path: '/schedule',
     name: 'Schedule',
     component: ScheduleList,
-    // meta: { requiresAuth: true }
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
@@ -34,15 +34,15 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  // const user = auth.currentUser
+  const user = await authReady()
 
-  // if (to.meta.requiresAuth && !user) {
-  //   return next({ name: 'Login' })
-  // }
-  // else if(to.name =="Logout"){
-  //   await auth.signOut()
-  //   return next({name: 'Login'})
-  // }
+  if (to.meta.requiresAuth && !user) {
+    return next({ name: 'Login' })
+  }
+  else if(to.name =="Logout"){
+    await auth.signOut()
+    return next({name: 'Login'})
+  }
 
   if(to.name === "Schedule") return next()
 

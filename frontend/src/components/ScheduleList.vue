@@ -87,7 +87,7 @@
                             <tbody>
                                 <tr v-for="sch in getSchedulesArray(device)" :key="sch.id">
                                     <td class="font-weight-bold">{{ sch.hour }}:{{ String(sch.minute).padStart(2, '0')
-                                        }}</td>
+                                    }}</td>
                                     <td>
                                         <v-chip :color="sch.action === 'ON' ? 'cyan-darken-1' : 'orange-darken-1'"
                                             size="small" label>
@@ -138,9 +138,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
-import ScheduleModal from './schedule/ScheduleModal.vue';
-import DeleteModal from './schedule/DeleteModal.vue';
-import AddModal from './schedule/AddModal.vue';
+import ScheduleModal from './schedule/Modal/Schedule.vue';
+import DeleteModal from './schedule/Modal/Delete.vue';
+import AddModal from './schedule/Modal/Add.vue';
 import { auth } from '../firebase'
 import router from "../router"
 
@@ -268,8 +268,10 @@ const openAddDevice = () => {
 const actionAddDevice = async (mac) => {
     const user = auth.currentUser
     const result = await API.post("/claim", { email: user.email, mac: mac })
+    await fetchDevices()
+
     console.log(result);
-    
+
 }
 
 const filteredDevices = computed(() => {

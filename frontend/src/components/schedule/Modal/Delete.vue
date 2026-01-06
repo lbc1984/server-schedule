@@ -1,6 +1,6 @@
 <template>
     <v-dialog v-model="showModal" max-width="500">
-        <v-card>
+        <v-card class="rounded-xl">
             <v-card-title class="bg-primary text-white">
                 Xóa thời gian
             </v-card-title>
