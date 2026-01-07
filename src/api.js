@@ -15,7 +15,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-
 const processData = async (mac, schedule_id = null) => {
   return (schedule_id == null) ? db.ref(`devices/${mac}`) : db.ref(`devices/${mac}/schedules/${schedule_id}`);
 }
@@ -37,6 +36,32 @@ async function verifyFirebaseToken(req, res, next) {
   }
 }
 
+const checkAllowedUser = async (req, res, next) => {
+  try {
+    const email = req.user.email
+
+    const doc = await admin
+      .firestore()
+      .collection("allowed_users")
+      .doc("rubicon")
+      .get()
+
+    if (!doc.exists) {
+      return res.status(403).json({ error: "Chưa cấu hình quyền" })
+    }
+
+    const emails = doc.data().emails || []
+
+    if (!emails.includes(email)) {
+      return res.status(403).json({ error: "Email không được phép" })
+    }
+
+    next()
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Permission check failed" })
+  }
+}
 
 app.post("/api/register", async (req, res) => {
   try {
@@ -99,24 +124,45 @@ app.post("/api/register", async (req, res) => {
 // ============================================================
 app.get("/api/devices", verifyFirebaseToken, async (req, res) => {
   try {
-    const owner = req.user.email
-    const snapshot = await db.ref("devices").orderByChild("owner").equalTo(owner).get()
-    const data = snapshot.val() || {};
+    const email = req.user.email
 
-    const devicesList = Object.keys(data).map(key => {
-      return {
-        mac: key,
-        ...data[key]
-      };
-    });
+    const allowDoc = await admin
+      .firestore()
+      .collection("allowed_users")
+      .doc("rubicon")
+      .get()
 
-    res.json(devicesList);
+    if (!allowDoc.exists) {
+      return res.status(403).json({ error: "Chưa cấu hình quyền truy cập" })
+    }
+
+    const { emails = [] } = allowDoc.data()
+
+    if (!emails.includes(email)) {
+      return res.status(403).json({ error: "Email không được phép truy cập" })
+    }
+
+    const snapshot = await db
+      .ref("devices")
+      .orderByChild("owner")
+      .equalTo("rubicon")
+      .get()
+
+    const data = snapshot.val() || {}
+
+    const devicesList = Object.keys(data).map(mac => ({
+      mac,
+      ...data[mac]
+    }))
+
+    res.json(devicesList)
 
   } catch (error) {
-    console.error("Get Devices Error:", error);
-    res.status(500).json({ error: "Lỗi lấy danh sách thiết bị" });
+    console.error("Get Devices Error:", error)
+    res.status(500).json({ error: "Lỗi lấy danh sách thiết bị" })
   }
-});
+})
+
 
 // ============================================================
 // 3. API MỚI: THÊM LỊCH HẸN (SCHEDULE)
@@ -272,7 +318,8 @@ app.get("/check", async (req, res) => {
 });
 
 app.post("/claim", verifyFirebaseToken, async (req, res) => {
-  const { mac, email } = req.body
+  const { mac } = req.body
+  const email = req.user.email
   const deviceRef = await processData(mac)
   const snapshot = await deviceRef.get()
 

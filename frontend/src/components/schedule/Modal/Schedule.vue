@@ -1,10 +1,10 @@
 <template>
     <v-dialog v-model="showModal" max-width="500">
-        <v-card class="rounded-xl">
+        <v-card>
             <v-card-title class="bg-primary text-white">
                 {{ props.isEditing ? '✏️ Sửa Lịch Hẹn' : '➕ Thêm Lịch Mới' }}
             </v-card-title>
-            <v-card-subtitle class="mt-2">Thiết bị: {{ mac }}</v-card-subtitle>
+            <v-card-subtitle class="mt-2">Tên thiết bị: {{ nameDevice }}</v-card-subtitle>
 
             <v-card-text class="py-4">
                 <v-row dense>
@@ -47,20 +47,16 @@
 </template>
 
 <script setup>
-import { reactive, onMounted, computed, watch, ref } from 'vue';
-import axios from 'axios';
+import { reactive, onMounted, computed, watch } from 'vue';
 
 const props = defineProps({
     isShow: Boolean,
     isEditing: Boolean,
     dataSchedule: Object,
-    mac: String,
-    scheduleId: String
+    nameDevice: String,
+    isSaving: Boolean
 })
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-const isSaving = ref(false)
 const minutes = []
 const hours = []
 const dayOptions = [
@@ -68,7 +64,7 @@ const dayOptions = [
     { value: 4, label: 'T5' }, { value: 5, label: 'T6' }, { value: 6, label: 'T7' },
     { value: 0, label: 'CN' }
 ];
-const emit = defineEmits(["update:isShow", "handleSave"])
+const emit = defineEmits(["update:isShow", "update:isSaving", "handleSave"])
 const localSchedule = reactive({ ...props.dataSchedule })
 
 onMounted(() => {
@@ -86,6 +82,11 @@ const showModal = computed({
     set: (value) => emit("update:isShow", value)
 })
 
+const isSaving = computed({
+    get: () => props.isSaving,
+    set: (value) => emit("update:isSaving", value)
+})
+
 watch(
     () => props.dataSchedule,
     (newVal) => {
@@ -97,30 +98,16 @@ watch(
 
 const closeModal = () => {
     emit('update:isShow', false)
-    emit('handleSave')
 }
 
 const handleSave = async () => {
-    isSaving.value = true;
-    try {
-        const payload = {
-            ...localSchedule,
-            days: localSchedule.days.sort((a, b) => a - b),
-            sentDate: null
-        };
+    const payload = {
+        ...localSchedule,
+        days: localSchedule.days.sort((a, b) => a - b),
+        sentDate: null
+    };
 
-        if (props.isEditing) {
-            await axios.put(`${BASE_URL}/api/schedule/${props.mac}/${props.scheduleId}`, payload);
-        } else {
-            await axios.post(`${BASE_URL}/api/schedule/${props.mac}`, payload);
-        }
-
-        closeModal();
-    } catch (error) {
-        alert("❌ Lỗi: " + error.message);
-    } finally {
-        isSaving.value = false;
-    }
+    emit('handleSave', payload)
 };
 
 const isDurationValid = computed(() => {

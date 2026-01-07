@@ -1,6 +1,6 @@
 <template>
   <v-dialog v-model="showModal" max-width="420">
-    <v-card class="rounded-xl">
+    <v-card>
       <v-card-title class="d-flex align-center gap-2 text-h6 bg-primary text-white">
         <v-icon color="primary">mdi-link-variant</v-icon>
         Claim thiết bị
@@ -21,7 +21,6 @@
           counter
           maxlength="17"
           @input="mac = mac.toUpperCase()"
-          @keyup.enter="submit"
         />
 
         <div class="text-caption text-grey">
@@ -38,7 +37,7 @@
         <v-btn
           color="primary"
           :disabled="!mac"
-          @click="submit"
+          @click="hanldeClaim"
         >
           <v-icon start>mdi-check</v-icon>
           Xác nhận
@@ -55,7 +54,7 @@ const props = defineProps({
   isShow: Boolean
 })
 
-const emit = defineEmits(["update:isShow", "submit"])
+const emit = defineEmits(["update:isShow", "hanldeClaim"])
 
 const showModal = computed({
   get: () => props.isShow,
@@ -68,9 +67,9 @@ watch(() => props.isShow, (val) => {
   if (val) mac.value = ""
 })
 
-const submit = () => {
+const hanldeClaim = () => {
   if (!mac.value) return
-  emit("submit", mac.value.trim())
+  emit("hanldeClaim", mac.value.trim())
   emit("update:isShow", false)
 }
 
