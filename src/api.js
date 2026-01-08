@@ -36,33 +36,6 @@ async function verifyFirebaseToken(req, res, next) {
   }
 }
 
-const checkAllowedUser = async (req, res, next) => {
-  try {
-    const email = req.user.email
-
-    const doc = await admin
-      .firestore()
-      .collection("allowed_users")
-      .doc("rubicon")
-      .get()
-
-    if (!doc.exists) {
-      return res.status(403).json({ error: "Chưa cấu hình quyền" })
-    }
-
-    const emails = doc.data().emails || []
-
-    if (!emails.includes(email)) {
-      return res.status(403).json({ error: "Email không được phép" })
-    }
-
-    next()
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: "Permission check failed" })
-  }
-}
-
 app.post("/api/register", async (req, res) => {
   try {
     const { mac, ip } = req.body;
@@ -150,10 +123,20 @@ app.get("/api/devices", verifyFirebaseToken, async (req, res) => {
 
     const data = snapshot.val() || {}
 
-    const devicesList = Object.keys(data).map(mac => ({
-      mac,
-      ...data[mac]
-    }))
+    const devicesList = Object.keys(data).map(mac => {
+      const {
+        owner,
+        connectedAt,
+        disconnectedAt,
+        lastSeen,
+        ...publicData
+      } = data[mac];
+
+      return {
+        mac,
+        ...publicData
+      };
+    });
 
     res.json(devicesList)
 

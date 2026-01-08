@@ -140,7 +140,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import ScheduleModal from './schedule/Modal/Schedule.vue';
 import DeleteModal from './schedule/Modal/Delete.vue';
 import ClaimModal from './schedule/Modal/Claim.vue';
-import { getDevices, addSchedule, editSchedule, deleteSchedule, claimDevice } from "../api"
+import { getDevices, addSchedule, editSchedule, deleteSchedule, claimDevice, actionDevice, changeNameDevice } from "../api"
 import { auth } from '../firebase';
 import route from '../router/index'
 
@@ -192,7 +192,9 @@ const fetchDevices = async () => {
 };
 
 onMounted(() => {
-    fetchDevices();
+    setTimeout(() => {
+        fetchDevices();
+    }, 1000);
 });
 
 const openAddModal = (mac) => {
@@ -301,7 +303,7 @@ const isSentToday = (sentDateStr) => {
 };
 
 const actionNow = async (mac, duration, action = "ON") => {
-    await API.post('/api/action', { mac: mac, duration: duration, action: action })
+    await actionDevice(mac, duration, action)
 };
 
 const toggleEdit = async (device) => {
@@ -315,7 +317,7 @@ const toggleEdit = async (device) => {
             const payload = {
                 name: device.name
             }
-            await API.put(`/api/name/${device.mac}`, payload);
+            await changeNameDevice(device.mac, payload)
         } catch (err) {
             console.error("❌ Save failed", err)
             return

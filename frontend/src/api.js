@@ -57,4 +57,11 @@ const deleteSchedule = async (mac, idSchedule) => {
     return await API.delete(`/api/schedule/${mac}/${idSchedule}`);
 }
 
-export { addSchedule, editSchedule, deleteSchedule, claimDevice, getDevices }
+const actionDevice = async (mac, duration, action) =>{
+    return await API.post('/api/action', { mac: mac, duration: duration, action: action })
+}
+
+const changeNameDevice = async (mac, payload) =>{
+    await API.put(`/api/name/${mac}`, payload);
+}
+export { addSchedule, editSchedule, deleteSchedule, claimDevice, getDevices, actionDevice, changeNameDevice }
