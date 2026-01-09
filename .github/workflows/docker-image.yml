@@ -51,7 +51,8 @@ jobs:
 
           # xóa sạch workspace nhưng GIỮ .git
           shopt -s dotglob
-          rm -rf *
+          rm -rf .[^.]* *
+          rm -rf .git
           shopt -u dotglob
 
           # copy nội dung release vào
