@@ -30,7 +30,7 @@ jobs:
         working-directory: frontend
         run: bun run build
 
-      - name: Prepare release files
+      - name: Prepare release content
         run: |
           rm -rf /tmp/release_tmp
           mkdir -p /tmp/release_tmp/src/frontend
@@ -46,12 +46,15 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
+          # tạo branch release rỗng (hoặc reset nếu đã tồn tại)
           git checkout --orphan release
-          
+
+          # xóa sạch workspace nhưng GIỮ .git
           shopt -s dotglob
           rm -rf *
           shopt -u dotglob
 
+          # copy nội dung release vào
           cp -r /tmp/release_tmp/* .
 
           git add -A
