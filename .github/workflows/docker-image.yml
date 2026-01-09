@@ -46,16 +46,13 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # tạo branch release rỗng (hoặc reset nếu đã tồn tại)
+          # tạo branch release sạch
           git checkout --orphan release
 
-          # xóa sạch workspace nhưng GIỮ .git
-          shopt -s dotglob
-          rm -rf .[^.]* *
-          rm -rf .git
-          shopt -u dotglob
+          # XÓA TẤT CẢ FILE CŨ (AN TOÀN – KHÔNG MẤT .git)
+          git rm -rf . || true
 
-          # copy nội dung release vào
+          # copy nội dung release
           cp -r /tmp/release_tmp/* .
 
           git add -A
