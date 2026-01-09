@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # ⚠️ rất quan trọng
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -36,6 +36,7 @@ jobs:
         run: |
           rm -rf release_tmp
           mkdir -p release_tmp/src/frontend
+
           cp -r frontend/dist/* release_tmp/src/frontend/
           cp app.js package.json release_tmp/
 
@@ -44,13 +45,18 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions"
-          git config user.email "lybaocuong@gmail.com"
+          git config user.email "actions@github.com"
 
+          # tạo branch release TRẮNG
           git checkout --orphan release
-          git rm -rf .
 
+          # xóa file working tree (an toàn)
+          rm -rf *
+
+          # copy nội dung release
           cp -r release_tmp/* .
 
-          git add .
-          git commit -m "build frontend (bun)"
+          git add -A
+          git commit -m "build frontend (bun)" || echo "no changes"
+
           git push -f https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git release
