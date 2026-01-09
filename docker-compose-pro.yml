@@ -27,6 +27,6 @@ services:
       dockerfile: dockerfile
 
     volumes:
-      - ./frontend/src/components:/app/src/components
-      - ./frontend/src/App.vue:/app/src/App.vue
+      # - ./frontend/src/components:/app/src/components
+      # - ./frontend/src/App.vue:/app/src/App.vue
       - ./src/frontend:/app/dist

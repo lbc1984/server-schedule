@@ -12,4 +12,3 @@ RUN bun install
 COPY . .
 
 ENTRYPOINT ["sh", "-c", "bun run build && echo 'Build done'"]
-
