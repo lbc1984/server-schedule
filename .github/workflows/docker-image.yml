@@ -9,13 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -32,13 +30,15 @@ jobs:
         working-directory: frontend
         run: bun run build
 
-      - name: Prepare release content
+      - name: Prepare release files
         run: |
-          rm -rf release_tmp
-          mkdir -p release_tmp/src/frontend
+          rm -rf /tmp/release_tmp
+          mkdir -p /tmp/release_tmp/src/frontend
 
-          cp -r frontend/dist/* release_tmp/src/frontend/
-          cp app.js package.json release_tmp/
+          cp -r frontend/dist/* /tmp/release_tmp/src/frontend/
+          cp app.js package.json /tmp/release_tmp/
+          cp web.config /tmp/release_tmp/ || true
+          cp robots.txt /tmp/release_tmp/ || true
 
       - name: Push to release branch
         env:
@@ -47,16 +47,12 @@ jobs:
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # tạo branch release TRẮNG
           git checkout --orphan release
-
-          # xóa file working tree (an toàn)
           rm -rf *
 
-          # copy nội dung release
-          cp -r release_tmp/* .
+          cp -r /tmp/release_tmp/* .
 
           git add -A
-          git commit -m "build frontend (bun)" || echo "no changes"
+          git commit -m "release build" || echo "no changes"
 
           git push -f https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git release
