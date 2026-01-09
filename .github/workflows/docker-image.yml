@@ -48,11 +48,14 @@ jobs:
 
           git checkout --orphan release
 
+          # XÓA TOÀN BỘ NỘI DUNG CŨ
           git rm -rf . || true
+          git clean -fdx
 
+          # COPY NỘI DUNG RELEASE
           cp -r /tmp/release_tmp/* .
 
           git add -A
           git commit -m "release build" || echo "no changes"
 
-          git push -f https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git release
+          git push -f https://x-access-token:${GITHUB_TOKEN}@github.com/${_
