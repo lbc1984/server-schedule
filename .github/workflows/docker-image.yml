@@ -35,10 +35,9 @@ jobs:
           rm -rf /tmp/release_tmp
           mkdir -p /tmp/release_tmp/src/frontend
 
+          cp -r src/* /tmp/release_tmp/src/
           cp -r frontend/dist/* /tmp/release_tmp/src/frontend/
           cp app.js package.json /tmp/release_tmp/
-          cp web.config /tmp/release_tmp/ || true
-          cp robots.txt /tmp/release_tmp/ || true
 
       - name: Push to release branch
         env:
@@ -48,7 +47,10 @@ jobs:
           git config user.email "actions@github.com"
 
           git checkout --orphan release
+          
+          shopt -s dotglob
           rm -rf *
+          shopt -u dotglob
 
           cp -r /tmp/release_tmp/* .
 
