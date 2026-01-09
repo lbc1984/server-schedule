@@ -44,7 +44,12 @@ jobs:
           git config user.email "lybaocuong@gmail.com"
 
           git checkout -B release
-          git add src/frontend
+          rm -rf *
+
+          git add src
+          git add app.js
+          git add package.json
+
           git commit -m "build frontend (bun)" || echo "no changes to commit"
 
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git release --force
