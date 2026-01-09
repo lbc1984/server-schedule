@@ -2,46 +2,49 @@ name: Build frontend (bun) and push to release
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Setup Node
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    - name: Install Bun
-      run: |
-        curl -fsSL https://bun.sh/install | bash
-        echo "$HOME/.bun/bin" >> $GITHUB_PATH
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
-    - name: Install deps
-      working-directory: frontend
-      run: bun install
+      - name: Install deps
+        working-directory: frontend
+        run: bun install
 
-    - name: Build frontend
-      working-directory: frontend
-      run: bun run build
+      - name: Build frontend
+        working-directory: frontend
+        run: bun run build
 
-    - name: Copy dist to src/frontend
-      run: |
-        rm -rf src/frontend
-        mkdir -p src/frontend
-        cp -r frontend/dist/* src/frontend/
+      - name: Copy dist to src/frontend
+        run: |
+          rm -rf src/frontend
+          mkdir -p src/frontend
+          cp -r frontend/dist/* src/frontend/
 
-    - name: Commit & push to release branch
-      run: |
-        git config user.name "github-actions"
-        git config user.email "lybaocuong@gmail.com"
+      - name: Commit & push to release branch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
 
-        git checkout -B release
-        git add src/frontend
-        git commit -m "build frontend (bun)"
-        git push origin release --force
+          git checkout -B release
+          git add src/frontend
+          git commit -m "build frontend (bun)" || echo "no changes to commit"
+
+          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git release --force
