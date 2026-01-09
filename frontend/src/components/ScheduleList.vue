@@ -1,13 +1,16 @@
 <template>
     <v-container>
-        <v-col cols="12" class="mb-4 d-flex justify-end">
+        <v-col cols="12" class="mb-4 ga-2 d-flex justify-end">
             <v-btn @click="fetchDevices" :loading="isLoading" color="primary" prepend-icon="mdi-refresh">
                 Làm mới
             </v-btn>
+            <v-btn @click="openClaimModal" :loading="isLoading" color="primary" prepend-icon="mdi-plus">
+                Thêm mới
+            </v-btn>
         </v-col>
         <v-col cols="12">
-            <v-text-field v-model="searchQuery" label="MAC Address..." prepend-inner-icon="mdi-magnify"
-                variant="outlined" clearable density="compact"></v-text-field>
+            <v-text-field v-model="searchQuery" label="Nhập tên..." prepend-inner-icon="mdi-magnify" variant="outlined"
+                clearable density="compact"></v-text-field>
         </v-col>
 
         <v-alert v-if="errorMessage" type="error" class="mb-4">{{ errorMessage }}</v-alert>
@@ -84,7 +87,7 @@
                             <tbody>
                                 <tr v-for="sch in getSchedulesArray(device)" :key="sch.id">
                                     <td class="font-weight-bold">{{ sch.hour }}:{{ String(sch.minute).padStart(2, '0')
-                                        }}</td>
+                                    }}</td>
                                     <td>
                                         <v-chip :color="sch.action === 'ON' ? 'cyan-darken-1' : 'orange-darken-1'"
                                             size="small" label>
@@ -105,7 +108,7 @@
                                     </td>
                                     <td class="text-center">
                                         <v-btn icon="mdi-delete-empty" size="small" variant="text" color="blue-grey"
-                                            @click="openDeleteModal(device.mac, sch)"></v-btn>
+                                            @click="openDeleteModal(device.name, sch)"></v-btn>
                                     </td>
                                 </tr>
                             </tbody>
@@ -122,57 +125,24 @@
             Không tìm thấy thiết bị nào.
         </v-alert>
 
-        <schedule-modal v-model:isShow="showModal" :isEditing="isEditing" :dataSchedule="formState" :mac="targetMac"
-            :scheduleId="scheduleId" @handleSave="fetchDevices" />
+        <schedule-modal v-model:isShow="showModal" v-model:isSaving="isSaving" :isEditing="isEditing"
+            :dataSchedule="formState" :nameDevice="nameDevice" @handleSave="handleSave" />
 
-        <delete-modal v-model:isShow="showModalDelete" :dataSchedule="formState" :mac="targetMac"
-            :scheduleId="scheduleId" @handleDelete="fetchDevices" />
+        <delete-modal v-model:isShow="showModalDelete" v-model:isDeleting="isDeleting" :dataSchedule="formState"
+            :nameDevice="nameDevice" @handleDelete="handleDelete" />
+
+        <claim-modal v-model:isShow="showClaimModal" @hanldeClaim="hanldeClaim" />
     </v-container>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
-import axios from 'axios';
-import ScheduleModal from './schedule/ScheduleModal.vue';
-import DeleteModal from './schedule/DeleteModal.vue';
-import { auth } from '../firebase'
-import router from "../router"
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API = axios.create({
-    baseURL: BASE_URL,
-    timeout: 1000,
-    headers: {
-        "Content-Type": "application/json"
-    }
-})
-
-API.interceptors.request.use(
-    async (config) => {
-        const user = auth.currentUser;
-
-        if (user) {
-            const token = await user.getIdToken();
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-
-        return config;
-    },
-    (error) => Promise.reject(error)
-);
-
-API.interceptors.response.use(
-    (response) => response,
-    async (error) => {
-        if (error.response?.status === 401) {
-            if (router.currentRoute.value.name !== "Login") {
-                router.push({ name: "Login" });
-            }
-        }
-
-        return Promise.reject(error);
-    }
-);
+import ScheduleModal from './schedule/Modal/Schedule.vue';
+import DeleteModal from './schedule/Modal/Delete.vue';
+import ClaimModal from './schedule/Modal/Claim.vue';
+import { getDevices, addSchedule, editSchedule, deleteSchedule, claimDevice, actionDevice, changeNameDevice } from "../api"
+import { auth } from '../firebase';
+import route from '../router/index'
 
 const allDevices = ref([]);
 const isLoading = ref(false);
@@ -182,8 +152,12 @@ const searchQuery = ref('');
 // --- STATE CHO MODAL ---
 const showModal = ref(false);
 const showModalDelete = ref(false);
+const showClaimModal = ref(false);
 const isEditing = ref(false);
+const isSaving = ref(false)
+const isDeleting = ref(false)
 const targetMac = ref('');
+const nameDevice = ref('')
 const scheduleId = ref('');
 
 const formState = reactive({
@@ -200,18 +174,27 @@ const DAY_MAP = { 0: 'CN', 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7' 
 const fetchDevices = async () => {
     isLoading.value = true;
     errorMessage.value = '';
+
     try {
-        const response = await API.get('/api/devices');
+        const response = await getDevices()
         allDevices.value = response.data;
     } catch (error) {
-        errorMessage.value = "Lỗi: " + (error.response?.data?.error || error.message);
+        if (error.response?.status === 403) {
+            alert("Tài khoản không có quyền truy cập")
+            await auth.signOut()
+            route.replace('/login')
+        } else {
+            console.error(error)
+        }
     } finally {
         isLoading.value = false;
     }
 };
 
 onMounted(() => {
-    fetchDevices();
+    setTimeout(() => {
+        fetchDevices();
+    }, 1000);
 });
 
 const openAddModal = (mac) => {
@@ -242,10 +225,9 @@ const openEditModal = (mac, schedule) => {
     showModal.value = true;
 };
 
-const openDeleteModal = (mac, schedule) => {
-
+const openDeleteModal = (name, schedule) => {
+    nameDevice.value = name
     showModalDelete.value = true;
-    targetMac.value = mac;
     scheduleId.value = schedule.id;
     formState.hour = schedule.hour;
     formState.minute = schedule.minute;
@@ -254,10 +236,49 @@ const openDeleteModal = (mac, schedule) => {
     formState.days = Array.isArray(schedule.days) ? [...schedule.days] : [];
 }
 
+const openClaimModal = () => {
+    showClaimModal.value = true
+}
+
+const hanldeClaim = async (mac) => {
+    const result = await claimDevice(mac)
+    await fetchDevices()
+
+    console.log(result);
+
+}
+
+const handleSave = async (payload) => {
+    isSaving.value = true;
+
+    try {
+        if (isEditing.value) {
+            await editSchedule(payload, targetMac.value, scheduleId.value)
+        } else {
+            await addSchedule(payload, targetMac.value)
+        }
+    } catch (error) {
+        alert("❌ Lỗi: " + error.message);
+    } finally {
+        isSaving.value = false;
+        showModal.value = false;
+        fetchDevices()
+    }
+};
+
+const handleDelete = async () => {
+    isDeleting.value = true
+    await deleteSchedule(targetMac.value, scheduleId.value)
+    isDeleting.value = false
+    showModalDelete.value = false
+
+    fetchDevices()
+}
+
 const filteredDevices = computed(() => {
     if (!searchQuery.value) return allDevices.value;
     const query = searchQuery.value.toLowerCase();
-    return allDevices.value.filter(d => d.mac.toLowerCase().includes(query));
+    return allDevices.value.filter(d => d.name.toLowerCase().includes(query));
 });
 
 const getSchedulesArray = (device) => {
@@ -282,7 +303,7 @@ const isSentToday = (sentDateStr) => {
 };
 
 const actionNow = async (mac, duration, action = "ON") => {
-    await API.post('/api/action', { mac: mac, duration: duration, action: action })
+    await actionDevice(mac, duration, action)
 };
 
 const toggleEdit = async (device) => {
@@ -296,7 +317,7 @@ const toggleEdit = async (device) => {
             const payload = {
                 name: device.name
             }
-            await API.put(`/api/name/${device.mac}`, payload);
+            await changeNameDevice(device.mac, payload)
         } catch (err) {
             console.error("❌ Save failed", err)
             return

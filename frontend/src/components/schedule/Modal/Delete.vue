@@ -1,5 +1,5 @@
 <template>
-    <v-dialog v-model="showModal" max-width="500">
+    <v-dialog v-model="isShow" max-width="500">
         <v-card>
             <v-card-title class="bg-primary text-white">
                 Xóa thời gian
@@ -14,7 +14,7 @@
                     <v-list-item>
                         <v-list-item-title>
                             <strong>Thiết bị:</strong>
-                            {{ mac }}
+                            {{ nameDevice }}
                         </v-list-item-title>
                     </v-list-item>
                     <v-list-item>
@@ -53,8 +53,8 @@
             </v-card-text>
 
             <v-card-actions class="d-flex justify-end">
-                <v-btn color="grey" variant="tonal" @click="closeModal" :disabled="isSaving">Hủy</v-btn>
-                <v-btn color="warning" variant="tonal" @click="handleDelete" :loading="isSaving">
+                <v-btn color="grey" variant="tonal" @click="closeModal" :disabled="isDeleting">Hủy</v-btn>
+                <v-btn color="warning" variant="tonal" @click="handleDelete" :loading="isDeleting">
                     Delete
                 </v-btn>
             </v-card-actions>
@@ -63,40 +63,42 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import axios from 'axios';
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { computed } from 'vue'
+const DAY_MAP = { 0: 'CN', 1: 'T2', 2: 'T3', 3: 'T4', 4: 'T5', 5: 'T6', 6: 'T7' };
 
 const props = defineProps({
-    mac: String,
+    nameDevice: String,
     dataSchedule: Object,
     isShow: Boolean,
-    scheduleId: String
+    isDeleting: Boolean
 })
 
-const isSaving = ref(false)
-const emit = defineEmits(["update:isShow", "handleDelete"])
+const emit = defineEmits(["update:isShow", "update:isDeleting", "handleDelete"])
 
-const showModal = computed({
+const isShow = computed({
     get: () => props.isShow,
     set: (value) => emit("update:isShow", value)
 })
 
+const isDeleting = computed({
+    get: () => props.isDeleting,
+    set: () => { emit("update:isDeleting") }
+})
+
 const closeModal = () => {
     emit('update:isShow', false)
-    emit("handleDelete")
 }
 
 const handleDelete = async () => {
-    isSaving.value = true
-    await axios.delete(`${BASE_URL}/api/schedule/${props.mac}/${props.scheduleId}`);
-    closeModal();
+    emit('update:isDeleting', true)
+    emit("handleDelete")
 }
 
 const formatDays = (days) => {
     if (!Array.isArray(days) || days.length === 7) return 'Hàng ngày';
     if (days.length === 0) return 'Không lặp';
+
+
     return days.map(d => DAY_MAP[d]).join(', ');
 };
 </script>

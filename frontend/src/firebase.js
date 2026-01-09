@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 import { getFirestore } from "firebase/firestore";
+import { onAuthStateChanged } from 'firebase/auth'
 
 const firebaseConfig = {
   apiKey: "AIzaSyCXSu97M3_ONeEV5GL2bn9MheySzvjTAzQ",
@@ -20,3 +21,10 @@ export const auth = getAuth(app);
 export const db = getDatabase(app);
 export const provider = new GoogleAuthProvider();
 export const db_firestore = getFirestore(app);
+export const authReady = () =>
+  new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe()
+      resolve(user)
+    })
+  })
