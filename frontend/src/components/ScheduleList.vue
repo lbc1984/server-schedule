@@ -2,14 +2,14 @@
     <v-container>
         <v-col cols="12" class="mb-4 ga-2 d-flex justify-end">
             <v-btn @click="fetchDevices" :loading="isLoading" color="primary" prepend-icon="mdi-refresh">
-                Làm mới
+                Refresh
             </v-btn>
             <v-btn @click="openClaimModal" :loading="isLoading" color="primary" prepend-icon="mdi-plus">
-                Thêm mới
+                Add device
             </v-btn>
         </v-col>
         <v-col cols="12">
-            <v-text-field v-model="searchQuery" label="Nhập tên..." prepend-inner-icon="mdi-magnify" variant="outlined"
+            <v-text-field v-model="searchQuery" label="Find device..." prepend-inner-icon="mdi-magnify" variant="outlined"
                 clearable density="compact"></v-text-field>
         </v-col>
 
@@ -51,11 +51,11 @@
 
                                 <v-btn color="primary" @click="actionNow(device.mac, device.now)" class="flex-shrink-0"
                                     :disabled="device.status != 'online' || device.now <= 0 || device.now == null">
-                                    Chạy
+                                    Run
                                 </v-btn>
                                 <v-btn color="warning" @click="actionNow(device.mac, 0, 'OFF')" class="flex-shrink-0"
                                     :disabled="device.status != 'online'">
-                                    Dừng
+                                    Stop
                                 </v-btn>
                             </div>
                         </v-col>
@@ -66,7 +66,7 @@
                         <v-col cols="12" class="d-flex justify-end ga-2">
                             <v-btn color="success" prepend-icon="mdi-plus" size="small"
                                 @click="openAddModal(device.mac)">
-                                Thêm lịch
+                                Add schedule
                             </v-btn>
                         </v-col>
                     </v-row>
@@ -87,7 +87,7 @@
                             <tbody>
                                 <tr v-for="sch in getSchedulesArray(device)" :key="sch.id">
                                     <td class="font-weight-bold">{{ sch.hour }}:{{ String(sch.minute).padStart(2, '0')
-                                    }}</td>
+                                        }}</td>
                                     <td>
                                         <v-chip :color="sch.action === 'ON' ? 'cyan-darken-1' : 'orange-darken-1'"
                                             size="small" label>
@@ -141,7 +141,7 @@ import ScheduleModal from './schedule/Modal/Schedule.vue';
 import DeleteModal from './schedule/Modal/Delete.vue';
 import ClaimModal from './schedule/Modal/Claim.vue';
 import { getDevices, addSchedule, editSchedule, deleteSchedule, claimDevice, actionDevice, changeNameDevice } from "../api"
-import { auth } from '../firebase';
+import { auth, authReady } from '../firebase';
 import route from '../router/index'
 
 const allDevices = ref([]);
@@ -192,9 +192,9 @@ const fetchDevices = async () => {
 };
 
 onMounted(() => {
-    setTimeout(() => {
-        fetchDevices();
-    }, 1000);
+    authReady().then(
+        fetchDevices()
+    )
 });
 
 const openAddModal = (mac) => {
