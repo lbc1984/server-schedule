@@ -2,20 +2,20 @@
     <v-container>
         <v-col cols="12" class="mb-4 ga-2 d-flex justify-end">
             <v-btn @click="fetchDevices" :loading="isLoading" color="primary" prepend-icon="mdi-refresh">
-                Làm mới
+                Refresh
             </v-btn>
             <v-btn @click="openClaimModal" :loading="isLoading" color="primary" prepend-icon="mdi-plus">
-                Thêm mới
+                Add device
             </v-btn>
         </v-col>
         <v-col cols="12">
-            <v-text-field v-model="searchQuery" label="Nhập tên..." prepend-inner-icon="mdi-magnify" variant="outlined"
+            <v-text-field v-model="searchQuery" label="Find device..." prepend-inner-icon="mdi-magnify" variant="outlined"
                 clearable density="compact"></v-text-field>
         </v-col>
 
         <v-alert v-if="errorMessage" type="error" class="mb-4">{{ errorMessage }}</v-alert>
         <v-alert v-if="isLoading && !filteredDevices.length" type="info" class="mb-4">
-            ⏳ Đang tải dữ liệu...
+            ⏳ Loading...
         </v-alert>
 
         <div v-if="filteredDevices.length > 0">
@@ -45,17 +45,17 @@
                         </v-col>
                         <v-col cols="12" md="6">
                             <div class="d-flex ga-2 align-center justify-end justify-sm-end">
-                                <v-text-field label="Nhập duration" v-model="device.now" variant="outlined"
+                                <v-text-field label="Input duration" v-model="device.now" variant="outlined"
                                     type="number" density="compact" hide-details class="flex-grow-1 duration-input"
                                     :disabled="device.status != 'online'" :rules="[v => v > 0]" error-color="red" />
 
                                 <v-btn color="primary" @click="actionNow(device.mac, device.now)" class="flex-shrink-0"
                                     :disabled="device.status != 'online' || device.now <= 0 || device.now == null">
-                                    Chạy
+                                    Run
                                 </v-btn>
                                 <v-btn color="warning" @click="actionNow(device.mac, 0, 'OFF')" class="flex-shrink-0"
                                     :disabled="device.status != 'online'">
-                                    Dừng
+                                    Stop
                                 </v-btn>
                             </div>
                         </v-col>
@@ -66,7 +66,7 @@
                         <v-col cols="12" class="d-flex justify-end ga-2">
                             <v-btn color="success" prepend-icon="mdi-plus" size="small"
                                 @click="openAddModal(device.mac)">
-                                Thêm lịch
+                                Add schedule
                             </v-btn>
                         </v-col>
                     </v-row>
@@ -87,7 +87,7 @@
                             <tbody>
                                 <tr v-for="sch in getSchedulesArray(device)" :key="sch.id">
                                     <td class="font-weight-bold">{{ sch.hour }}:{{ String(sch.minute).padStart(2, '0')
-                                    }}</td>
+                                        }}</td>
                                     <td>
                                         <v-chip :color="sch.action === 'ON' ? 'cyan-darken-1' : 'orange-darken-1'"
                                             size="small" label>
@@ -99,7 +99,7 @@
                                     <td>
                                         <v-chip size="small"
                                             :color="isSentToday(sch.sentDate) ? 'light-green-darken-2' : 'grey'">
-                                            {{ isSentToday(sch.sentDate) ? '✅ Đã chạy' : '⏳ Chờ' }}
+                                            {{ isSentToday(sch.sentDate) ? '✅ Done' : '⏳ waiting' }}
                                         </v-chip>
                                     </td>
                                     <td class="text-center">
@@ -115,14 +115,14 @@
                         </v-table>
                     </div>
                     <v-alert v-else type="warning" variant="tonal" class="mt-4">
-                        🚫 Chưa có lịch hẹn nào.
+                        🚫 Not schedules
                     </v-alert>
                 </v-card-text>
             </v-card>
         </div>
 
         <v-alert v-else-if="!isLoading" type="warning" class="mt-4">
-            Không tìm thấy thiết bị nào.
+            Not found device
         </v-alert>
 
         <schedule-modal v-model:isShow="showModal" v-model:isSaving="isSaving" :isEditing="isEditing"
@@ -141,7 +141,7 @@ import ScheduleModal from './schedule/Modal/Schedule.vue';
 import DeleteModal from './schedule/Modal/Delete.vue';
 import ClaimModal from './schedule/Modal/Claim.vue';
 import { getDevices, addSchedule, editSchedule, deleteSchedule, claimDevice, actionDevice, changeNameDevice } from "../api"
-import { auth } from '../firebase';
+import { auth, authReady } from '../firebase';
 import route from '../router/index'
 
 const allDevices = ref([]);
@@ -192,9 +192,9 @@ const fetchDevices = async () => {
 };
 
 onMounted(() => {
-    setTimeout(() => {
-        fetchDevices();
-    }, 1000);
+    authReady().then(
+        fetchDevices()
+    )
 });
 
 const openAddModal = (mac) => {
@@ -290,7 +290,7 @@ const getSchedulesArray = (device) => {
 };
 
 const formatDays = (days) => {
-    if (!Array.isArray(days) || days.length === 7) return 'Hàng ngày';
+    if (!Array.isArray(days) || days.length === 7) return 'Every day';
     if (days.length === 0) return 'Không lặp';
     return days.map(d => DAY_MAP[d]).join(', ');
 };

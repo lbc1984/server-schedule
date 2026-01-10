@@ -95,7 +95,7 @@ const handleDelete = async () => {
 }
 
 const formatDays = (days) => {
-    if (!Array.isArray(days) || days.length === 7) return 'Hàng ngày';
+    if (!Array.isArray(days) || days.length === 7) return 'Every day';
     if (days.length === 0) return 'Không lặp';
 
 

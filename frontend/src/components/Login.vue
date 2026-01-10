@@ -11,13 +11,13 @@
         </h2>
 
         <p class="text-medium-emphasis text-body-2">
-          Đăng nhập để quản lý thiết bị & lịch hẹn
+          Log in to manage your device and appointments.
         </p>
       </div>
 
       <v-btn block height="48" color="red-darken-1" class="text-white" prepend-icon="mdi-google" :loading="loading"
         @click="loginWithGoogle">
-        Đăng nhập bằng Google
+        Login by Google
       </v-btn>
     </v-card>
   </div>

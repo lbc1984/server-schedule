@@ -5,14 +5,14 @@
       v-if="$route.name !== 'Login'"
       class="main-header"
     >
-      <h1>Scheduler</h1>
+      <h1>Rubicon</h1>
       <nav>
         <router-link
           to="/schedule"
           class="nav-btn"
           :class="{ active: $route.path === '/schedule' }"
         >
-          📋 Thiết bị
+          📋 Devices
         </router-link>
 
         <router-link
