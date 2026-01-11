@@ -9,8 +9,8 @@
             </v-btn>
         </v-col>
         <v-col cols="12">
-            <v-text-field v-model="searchQuery" label="Find device..." prepend-inner-icon="mdi-magnify" variant="outlined"
-                clearable density="compact"></v-text-field>
+            <v-text-field v-model="searchQuery" label="Find device..." prepend-inner-icon="mdi-magnify"
+                variant="outlined" clearable density="compact"></v-text-field>
         </v-col>
 
         <v-alert v-if="errorMessage" type="error" class="mb-4">{{ errorMessage }}</v-alert>
@@ -87,7 +87,7 @@
                             <tbody>
                                 <tr v-for="sch in getSchedulesArray(device)" :key="sch.id">
                                     <td class="font-weight-bold">{{ sch.hour }}:{{ String(sch.minute).padStart(2, '0')
-                                        }}</td>
+                                    }}</td>
                                     <td>
                                         <v-chip :color="sch.action === 'ON' ? 'cyan-darken-1' : 'orange-darken-1'"
                                             size="small" label>
@@ -108,7 +108,7 @@
                                     </td>
                                     <td class="text-center">
                                         <v-btn icon="mdi-delete-empty" size="small" variant="text" color="blue-grey"
-                                            @click="openDeleteModal(device.name, sch)"></v-btn>
+                                            @click="openDeleteModal(device.mac, device.name, sch)"></v-btn>
                                     </td>
                                 </tr>
                             </tbody>
@@ -225,7 +225,8 @@ const openEditModal = (mac, schedule) => {
     showModal.value = true;
 };
 
-const openDeleteModal = (name, schedule) => {
+const openDeleteModal = (mac, name, schedule) => {
+    targetMac.value = mac
     nameDevice.value = name
     showModalDelete.value = true;
     scheduleId.value = schedule.id;

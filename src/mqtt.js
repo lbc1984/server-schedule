@@ -9,7 +9,10 @@ const mqttClient = mqtt.connect({
   protocol: "mqtts"
 });
 
-mqttClient.on("connect", () => console.log("✅ MQTT Connected"));
+mqttClient.on("connect", () =>
+  console.log("✅ MQTT Connected"),
+  mqttClient.subscribe("device/+/status")
+);
 mqttClient.on("error", (err) => console.error("❌ MQTT Error:", err));
 
 export default mqttClient;
