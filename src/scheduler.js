@@ -8,8 +8,6 @@ let schedules = {};
 export const startScheduler = () => {
 	console.log("⏳ Starting Scheduler & LWT Listener...");
 
-	mqttClient.subscribe("device/+/status");
-
 	mqttClient.on("message", async (topic, message) => {
 		const msgString = message.toString();
 		const match = topic.match(/device\/(.+)\/status/);
@@ -44,7 +42,7 @@ export const startScheduler = () => {
 
 		Object.keys(devices).forEach((deviceId) => {
 			const device = devices[deviceId];
-			
+
 			if (device.status === "offline") {
 				delete schedules[deviceId];
 				return;
@@ -75,7 +73,7 @@ export const startScheduler = () => {
 			schedules[deviceId].forEach(async (sch) => {
 				const days = sch.days || [0, 1, 2, 3, 4, 5, 6];
 				const sentDate = sch.sentDate || null;
-
+				console.log("⏰ CRON TICK:", now.toISOString());
 				if (
 					now.getHours() == sch.hour &&
 					now.getMinutes() == sch.minute &&
