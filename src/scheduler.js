@@ -67,13 +67,14 @@ export const startScheduler = () => {
 	cron.schedule("*/10 * * * * *", async () => {
 		const now = new Date();
 		const today = now.toISOString().split("T")[0];
+		console.log(schedules);
 
 		for (const deviceId in schedules) {
 
 			schedules[deviceId].forEach(async (sch) => {
 				const days = sch.days || [0, 1, 2, 3, 4, 5, 6];
 				const sentDate = sch.sentDate || null;
-				console.log("⏰ CRON TICK:", now.toISOString());
+				console.log("⏰ CRON TICK 2:", now.toISOString());
 				if (
 					now.getHours() == sch.hour &&
 					now.getMinutes() == sch.minute &&
