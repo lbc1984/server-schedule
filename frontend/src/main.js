@@ -17,27 +17,27 @@ import '@mdi/font/css/materialdesignicons.css';
 
 // 3. Tạo Instance Vuetify
 const vuetify = createVuetify({
-  components,
-  directives,
-  // Cấu hình icons
-  icons: {
-    defaultSet: 'mdi',
-  },
-  // Cấu hình theme cơ bản
-  theme: {
-    defaultTheme: 'light',
-    themes: {
-        light: {
-            colors: {
-                // Đặt màu chính để khớp với màu Header cũ (Dark Blue/Grey)
-                primary: '#2c3e50', 
-            }
-        }
-    }
-  }
+	components,
+	directives,
+	// Cấu hình icons
+	icons: {
+		defaultSet: 'mdi',
+	},
+	// Cấu hình theme cơ bản
+	theme: {
+		defaultTheme: 'light',
+		themes: {
+			light: {
+				colors: {
+					// Đặt màu chính để khớp với màu Header cũ (Dark Blue/Grey)
+					primary: '#2c3e50',
+				}
+			}
+		}
+	}
 });
 
 createApp(App)
-  .use(vuetify) // 4. Đăng ký Vuetify
-  .use(router)
-  .mount('#app');
+	.use(vuetify) // 4. Đăng ký Vuetify
+	.use(router)
+	.mount('#app');
