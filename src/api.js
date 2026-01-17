@@ -111,10 +111,15 @@ app.get("/api/devices", verifyFirebaseToken, async (req, res) => {
 			return res.status(403).json({ error: "Email không được phép truy cập" })
 		}
 
-		const snapshot = await db.ref("devices").orderByChild("owner").equalTo("rubicon").get()
+		let groupName = "rubicon"
+		const host = req.get("host")
 
+		if (host.includes("localhost") || host.includes("cuong")) {
+			groupName = "cuong"
+		}
+		
+		const snapshot = await db.ref("devices").orderByChild("owner").equalTo(groupName).get()
 		const data = snapshot.val() || {}
-
 		const devicesList = Object.keys(data).map(mac => {
 			const { owner, connectedAt, disconnectedAt, lastSeen, ...publicData } = data[mac]
 
