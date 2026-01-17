@@ -112,7 +112,7 @@ app.get("/api/devices", verifyFirebaseToken, async (req, res) => {
 		}
 
 		let groupName = "rubicon"
-		const host = req.get("host")
+		const host = req.headers.origin || ''
 
 		if (host.includes("localhost") || host.includes("cuong")) {
 			groupName = "cuong"
